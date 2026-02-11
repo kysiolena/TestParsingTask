@@ -1,5 +1,16 @@
 """
 Parsing data from https://brain.com.ua/ukr/Mobilniy_telefon_Apple_iPhone_16_Pro_Max_256GB_Black_Titanium-p1145443.html
+***************
+Name
+Color
+Built-in Memory
+Manufacturer
+Prices
+SKU
+Reviews Count
+Images
+Characteristics
+***************
 """
 
 import pprint
@@ -41,7 +52,7 @@ def get_product_data(url: str) -> dict | None:
     """
     try:
         # We don't need to pass headers/cookies here; they are held by the session
-        response = session.get(url, timeout=10)
+        response = session.get(url)
         response.raise_for_status()  # Raises an error for 4xx or 5xx codes
 
         soup = BeautifulSoup(response.text, "html.parser")
@@ -54,34 +65,39 @@ def get_product_data(url: str) -> dict | None:
             product_info["name"] = soup.select_one(
                 "h1.main-title"
             ).text.strip()  # //h1[@class='main-title']
-        except AttributeError:
+        except AttributeError as e:
+            print("❌ Error Name", e)
             product_info["name"] = None
             # TO DO: logging
 
         # Color
         try:
             product_info["color"] = soup.select_one(
-                "a[title^='Колір'"
+                "a[title^='Колір']"
             ).text.strip()  # //a[starts-with(@title, 'Колір')]
-        except AttributeError:
+        except AttributeError as e:
+            print("❌ Error Color", e)
             product_info["color"] = None
             # TO DO: logging
 
         # Built-in Memory
         try:
             product_info["builtin_memory"] = soup.select_one(
-                "a[title^='Вбудована пам'"
+                "a[title^='Вбудована пам']"
             ).text.strip()  # //a[starts-with(@title, 'Вбудована пам')]
-        except AttributeError:
+        except AttributeError as e:
+            print("❌ Error Built-in Memory", e)
             product_info["builtin_memory"] = None
             # TO DO: logging
 
         # Manufacturer
         try:
-            product_info["manufacturer"] = soup.select_one(
-                ".br-pr-chr .br-pr-chr-item:last-of-type > div div:first-of-type span:last-of-type"
-            ).text.strip()  # //span[text()='Виробник']/following-sibling::span
-        except AttributeError:
+            product_info["manufacturer"] = (
+                soup.find(string="Виробник").find_next("span").text.strip()
+            )
+            # //span[text()='Виробник']/following-sibling::span
+        except AttributeError as e:
+            print("❌ Error Manufacturer", e)
             product_info["manufacturer"] = None
             # TO DO: logging
 
@@ -90,7 +106,8 @@ def get_product_data(url: str) -> dict | None:
             prices = soup.select(
                 ".main-price-block .price-wrapper > span"
             )  # //*[contains(@class, 'main-price-block')]//*[@class='price-wrapper']/span
-        except AttributeError:
+        except AttributeError as e:
+            print("❌ Error Prices", e)
             product_info["price_regular"] = None
             product_info["price_sale"] = None
             # TO DO: logging
@@ -111,34 +128,98 @@ def get_product_data(url: str) -> dict | None:
 
         # SKU
         try:
-            product_info["sku"] = soup.select_one(
-                ".main-right-block .br-pr-code-val"
-            ).text.strip()  # //*[contains(@class, 'main-right-block')]//*[@class='br-pr-code-val']
-        except AttributeError:
+            sku = soup.select_one(".br-pr-code-val")
+
+            product_info["sku"] = sku.text.strip()
+            # //*[@class='br-pr-code-val']
+        except AttributeError as e:
+            print("❌ Error SKU", e)
             product_info["sku"] = None
             # TO DO: logging
 
         # Reviews Count
         try:
             product_info["reviews_count"] = soup.select_one(
-                "##"
-            ).text.strip()  # //*[contains(@class, 'main-right-block')]//*[@class='br-pr-code-val']/ancestor-or-self::*[@class='br-pr-code-wrapper']/*[contains(@class, 'main-comments-block')]//*[contains(@class, 'reviews-count')]/span
-        except AttributeError:
+                ".reviews-count span"
+            ).text.strip()
+            # //*[contains(@class, 'reviews-count')]/span
+        except AttributeError as e:
+            print("❌ Error Review Count", e)
             product_info["reviews_count"] = None
             # TO DO: logging
 
-        """
-        Все фото товара. Здесь нужно собрать ссылки на фото и сохранить в список
-        Кол-во отзывов
-        Диагональ экрана
-        Разрешение дисплея
-        Характеристики товара. Все характеристики на вкладке. Характеристики собрать как словарь
-        """
+        # Images
+        try:
+            images = soup.select(".br-pr-slider .br-main-img")
+            # //*[contains(@class, 'br-pr-slider')]//img[@class='br-main-img']
+
+            images_srcs = []
+            for image in images:
+                images_srcs.append(image.get("src"))
+
+            product_info["images"] = images_srcs
+        except AttributeError as e:
+            print("❌ Error Images", e)
+            product_info["images"] = None
+            # TO DO: logging
+
+        # Characteristics
+        try:
+            characteristics = soup.select(".br-pr-chr-item")
+            # //*[@class='br-pr-chr-item']
+
+            characteristics_list = []
+            for characteristic in characteristics:
+                try:
+                    title = characteristic.select_one("h3").text.strip()
+
+                    items = characteristic.select("div > div")
+                except AttributeError:
+                    # TO DO: logging
+                    continue
+                else:
+                    items_dict = {}
+                    for item in items:
+                        try:
+                            key, value, *rest = item.select("span")
+                        except AttributeError:
+                            # TO DO: logging
+                            continue
+                        else:
+                            # Default parameter
+                            param_name = None
+                            param_value = None
+
+                            try:
+                                param_name = key.text.strip()
+                                param_value = value.select_one("a").text.strip()
+                            except AttributeError:
+                                # TO DO: logging
+                                continue
+                            else:
+                                items_dict[param_name] = param_value
+                            finally:
+                                # Screen Diagonal
+                                if param_name == "Діагональ екрану":
+                                    product_info["screen_diagonal"] = param_value
+
+                                # Screen Resolution
+                                if param_name == "Роздільна здатність екрану":
+                                    product_info["screen_resolution"] = param_value
+
+                    # Append characteristic list
+                    characteristics_list.append((title, items_dict))
+
+            product_info["characteristics"] = characteristics_list
+        except AttributeError:
+            product_info["characteristics"] = None
+            # TO DO: logging
 
         return product_info
 
     except RequestException as e:
-        print(f"Error fetching {url}: {e}")
+        print(f"❌ Error fetching {url}: {e}")
+
         return None
 
 
