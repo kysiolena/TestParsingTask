@@ -15,10 +15,10 @@ Characteristics
 ***************
 """
 
-import pprint  # noqa
 import random
 import time
 from concurrent.futures import ThreadPoolExecutor
+from pprint import pprint  # noqa
 
 from bs4 import BeautifulSoup
 from requests import Session
@@ -207,7 +207,7 @@ def get_product_data(parsed_data: ProductInfo) -> dict | None:
 
                         try:
                             param_name = key.text.strip()
-                            param_value = value.select_one("a").text.strip()
+                            param_value = value.text.replace("\xa0", " ").strip()
                         except AttributeError:
                             # TO DO: logging
                             continue
@@ -239,6 +239,8 @@ def get_product_data(parsed_data: ProductInfo) -> dict | None:
 
     # Timeout
     time.sleep(random.uniform(1, 3))
+
+    # pprint(product_info)
 
     return product_info
 
