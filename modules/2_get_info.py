@@ -9,6 +9,8 @@ Prices
 SKU
 Reviews Count
 Images
+Screen Diagonal
+Screen Resolution
 Characteristics
 ***************
 """

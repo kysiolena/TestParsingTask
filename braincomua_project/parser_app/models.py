@@ -19,6 +19,8 @@ class ProductInfo(models.Model):
     sku = models.CharField(max_length=50, null=True, blank=True)
     reviews_count = models.IntegerField(null=True, blank=True)
     images = ArrayField(models.CharField(max_length=255), null=True, blank=True)
+    screen_diagonal = models.CharField(max_length=20, null=True, blank=True)
+    screen_resolution = models.CharField(max_length=20, null=True, blank=True)
     characteristics = models.JSONField(null=True, blank=True)
     status = models.CharField(max_length=2, choices=Status.choices, default=Status.NEW)
     created_at = models.DateTimeField(auto_now_add=True)
