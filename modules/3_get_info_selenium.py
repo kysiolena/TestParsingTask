@@ -1,10 +1,17 @@
-import random
+"""
+This script makes some actions:
+load page, enter search text,
+click search button and first product of the list,
+parse product data and save to DB
+"""
+
 import time
-from pprint import pprint
+from pprint import pprint  # noqa
 
 from selenium import webdriver
 from selenium.common import NoSuchElementException
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -65,12 +72,6 @@ def click_first_product(wait) -> None:
 def parse_product_data(driver, wait) -> dict | None:
     # Product Data
     product_info = {}
-
-    # try:
-    #     wait.until(EC.visibility_of_element_located((By.XPATH, "//h1")))
-    # except TimeoutException as e:
-    #     print("❌ Page don't loaded in time", e)
-    #     return None
 
     def save_text_value(attrib: str, xpath: str) -> None:
         try:
@@ -211,18 +212,37 @@ def parse_product_data(driver, wait) -> dict | None:
         product_info["characteristics"] = None
         # TO DO: logging
 
-    # Saving product_info into DB
-    prod = ProductInfo(link=driver.current_url)
-    for key, value in product_info.items():
-        setattr(prod, key, value)
-
-    prod.status = Status.DONE
-    prod.save()
-
-    # Timeout
-    time.sleep(random.uniform(1, 3))
-
     return product_info
+
+
+def save_to_db(driver, data: dict) -> None:
+    # Saving product_info into DB
+    data["link"] = driver.current_url
+    data["status"] = Status.DONE
+
+    ProductInfo.objects.get_or_create(**data)
+
+
+def steps(url: str, driver: WebDriver, wait: WebDriverWait) -> None:
+    # Step 1: Open the page
+    open_page(driver, url)
+
+    # Step 2: Enter search query
+    enter_search_query(wait)
+
+    # Step 3: Click the "Find" button
+    click_search_button(wait)
+
+    # Step 4: Click on the first search result
+    click_first_product(wait)
+
+    # Step 5: Parse product details
+    data = parse_product_data(driver, wait)
+
+    # Step 6: Save to DB
+    save_to_db(driver, data)
+
+    # pprint(data)
 
 
 def main() -> None:
@@ -236,22 +256,9 @@ def main() -> None:
     wait = WebDriverWait(driver, 10)
 
     try:
-        # Step 1: Open the page
-        open_page(driver, "https://brain.com.ua/")
-
-        # Step 2: Enter search query
-        enter_search_query(wait)
-
-        # Step 3: Click the "Find" button
-        click_search_button(wait)
-
-        # Step 4: Click on the first search result
-        click_first_product(wait)
-
-        # Step 5: Parse product details
-        data = parse_product_data(driver, wait)
-
-        pprint(data)
+        # Run actions
+        url = "https://brain.com.ua/"
+        steps(url, driver, wait)
     finally:
         # Keep the browser open for a few seconds to see the result, then close
         time.sleep(10)

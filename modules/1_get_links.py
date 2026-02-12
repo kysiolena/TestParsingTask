@@ -1,3 +1,7 @@
+"""
+This script creates the ProductInfo instances and saves them to the DB with the status 'New'
+"""
+
 from load_django import *  # noqa
 
 from parser_app.models import ProductInfo, Status
