@@ -60,8 +60,8 @@ def click_search_button(page: Page) -> None:
     page.locator(search_button_xpath).click()
 
 
-def click_first_product(page: Page) -> None:
-    first_product_xpath = "(//*[contains(@class, 'br-pp-img')]/a)[2]"
+def click_product(page: Page, number: int) -> None:
+    first_product_xpath = f"(//*[contains(@class, 'br-pp-img')]/a)[{number}]"
     # Playwright auto-waits for the element to be actionable
     page.locator(first_product_xpath).click()
 
@@ -217,7 +217,7 @@ def steps(page) -> None:
 
     # Step 4: Click the 1st result
     print("Step 4: Clicking the first result...")
-    click_first_product(page)
+    click_product(page, 3)
 
     # Step 5: Parse product info
     print("Step 5: Parse product details...")
